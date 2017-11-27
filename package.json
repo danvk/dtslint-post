@@ -1,0 +1,11 @@
+{
+  "name": "dtslint-post",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "@types/underscore": "^1.8.5",
+    "dtslint": "^0.2.0",
+    "underscore": "^1.8.3"
+  }
+}
