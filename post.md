@@ -45,7 +45,7 @@ it('should square 4', () => {
 });
 ```
 
-Sure! _It's not asserting anything!_ It doesn't matter whether `square` is implemented correctly. So long as the function doesn't throw an exception, this test will pass.
+Sure. _It's not asserting anything!_ It doesn't matter whether `square` is implemented correctly. So long as the function doesn't throw an exception, this test will pass.
 
 This isn't great. The test would be much better if it checked the return value of `square(4)`:
 
@@ -55,7 +55,7 @@ it('should square 4' () => {
 });
 ```
 
-Crazy as the first example is, it's exactly how the type declarations in DefinitelyType have always been tested. It didn't matter what the type was, so long as the type checker didn't find any errors. Particularly in the presence of `any` types, this makes for some weak tests. Weak tests lead to imprecise and inaccurate typings, and they make refactoring type declarations scary.
+Crazy as the first example is, it's exactly how the type declarations in DefinitelyType have traditionally been tested. It didn't matter what the type was, so long as the type checker didn't find any errors. Particularly in the presence of [`any` types][any], this makes for some weak tests. Weak tests lead to imprecise and inaccurate typings, and they make refactoring type declarations scary.
 
 Microsoft recently introduced a new tool, [dtslint][], which makes assertions in type declaration tests possible. The rest of this post explains how to use it to bring all the benefits of testing to type declaration files.
 
@@ -210,12 +210,13 @@ Testing is the key to improving an existing code base, and `dtslint` brings many
 `dtslint` is in use in the [DefinitelyTyped][] repo today. So if you're writing type declarations, please write some type assertions! And if you're changing existing type declarations, please write assertions for the existing behavior. It's my hope that, over the long run, `dtslint` will lead to dramatically higher quality type declarations for all TypeScript users. And that means a better TypeScript experience, even if you don't know that `dtslint` exists!
 
 [module augmentation]: https://www.typescriptlang.org/docs/handbook/declaration-merging.html
-[dtslint]:
+[dtslint]: https://github.com/Microsoft/dtslint
 [bad test]: https://github.com/DefinitelyTyped/DefinitelyTyped/blob/3289762cca59308bf092e4b49ea2242ef27fc23e/types/underscore/underscore-tests.ts#L173-L174
-[typed-pluck]:
-[ts21-release-notes]:
+[typed-pluck]: https://medium.com/@danvdk/a-typed-pluck-exploring-typescript-2-1s-mapped-types-c15f72bf4ca8
+[ts21-release-notes]: https://www.typescriptlang.org/docs/handbook/release-notes/typescript-2-1.html
 [flow-typed]: https://github.com/flowtype/flow-typed/tree/614bf49aa8b00b72c41caab1120094bc10fb9476/definitions/npm/underscore_v1.x.x
 [_map]: https://lodash.com/docs#map
 [joke]: https://twitter.com/bendhalpern/status/578925947245633536?lang=en
 [tdd]: https://en.wikipedia.org/wiki/Test-driven_development
 [DefinitelyTyped]: https://github.com/DefinitelyTyped/DefinitelyTyped
+[any]: https://www.typescriptlang.org/docs/handbook/basic-types.html#any
