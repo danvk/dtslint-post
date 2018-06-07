@@ -84,7 +84,7 @@ _.pluck(stooges, 'name');  // $ExpectType string[]
 When we run `tsc` on this test, it passes. but when we run `dtslint` on it, we get the following:
 
 ```
-ERROR: 2:1   expect                    Expected type to be:
+ERROR: 2:1  expect  Expected type to be:
   string[]
 got:
   any[]
@@ -101,15 +101,17 @@ export function pluck<K extends keyof T, T>(array: T[], key: K): T[K][];
 Now we get the following:
 
 ```
-$ dtslint types
+Test with 2.8
+Test with 2.7
+Test with 2.6
 Test with 2.5
 Test with 2.4
 Test with 2.3
 Test with 2.2
 Test with 2.1
 Test with 2.0
-Error: /Users/danvk/github/dtslint-post/types/index.d.ts
-ERROR: 1:33  expect                    Compile error in typescript@2.0 but not in typescript@2.1.
+Error: /Users/danvk/github/dtslint-post/types/index.d.ts:1:33
+ERROR: 1:33  expect  Compile error in typescript@2.0 but not in typescript@2.1.
 Fix with a comment '// TypeScript Version: 2.1' just under the header.
 Cannot find name 'keyof'.
 ```
@@ -121,14 +123,91 @@ The tests pass with TypeScript 2.1+, but not with TypeScript 2.0. This make sens
 export function pluck<K extends keyof T, T>(array: T[], key: K): Array<T[K]>;
 ```
 
-This gets at another reason that type declarations are hard to maintain. There are actually three independent versions involved: the version of the library, the version of the typings and the version of the TypeScript compiler. FlowTyped chooses to [explicitly model this][flow-typed], whereas DefinitelyTyped does not.
+This gets at another reason that type declarations are hard to maintain. There are actually _three_ independent versions involved: the version of the library, the version of the typings and the version of the TypeScript compiler. FlowTyped chooses to [explicitly model this][flow-typed], whereas DefinitelyTyped does not.
 
 ## Refactoring with tests
 
-One of the best reasons to write tests is for the safety they give you in refactoring your code. With good test coverage, you can feel more confident that your refactor didn't break anything.
+Suppose we're working with type declarations for [lodash's `map` function][_map]:
 
+```ts
+export function map<U, V>(array: U[], fn: (u: U) => V): V[];
+```
 
+You use this much like `Array.prototype.map`:
 
+```ts
+_.map([1, 2, 3], x => x * x);  // returns [1, 4, 9].
+```
+
+Lodash has no `_.pluck` function. Instead, it adds a variant of `_.map`:
+
+```ts
+var stooges = [{ name: 'moe', age: 40 }, { name: 'larry', age: 50 }, { name: 'curly', age: 60 }];
+_.map(stooges, 'age');  // returns [40, 50, 60].
+```
+
+We'd to model this in the type declarations, but it's scary to alter the type of such an important function! This is one of the very best reasons to write tests: they let you refactor with confidence. dtslint lets you do the same with type declarations.
+
+Here's a dtslint test for `_.map` that covers both the old and new declarations:
+
+```ts
+// Existing behavior
+_.map([1, 2, 3], x => x * x);  // $ExpectType number[]
+_.map([1, 2, 3], x => '' + x);  // $ExpectType string[]
+
+// New behavior
+_.map(stooges, 'name');  // $ExpectType string[]
+_.map(stooges, 'age');  // $ExpectType number[]
+```
+
+Now we can add an overload to the declaration for `map`:
+
+```ts
+export function map<U, V>(array: U[], fn: (u: U) => V): V[];
+export function map<K extends keyof T, T>(array: T[], key: K): Array<T[K]>;
+```
+
+When `dtslint` passes, we can be confident that we've both added the new functionality _and_ avoided changing existing behavior.
+
+## Testing callback parameters
+
+Callbacks are pervasive in JavaScript and it's important that type declarations accurately model their parameters. `dtslint` can help here, too. If we're careful about formatting, we can make assertions about the types of callback parameters.
+
+`_.map` actually passes three parameters to its callback. This snippet tests that all of them have the correct types inferred:
+
+```ts
+_.map(['1', '2'], (
+  x, // $ExpectType string
+  i, // $ExpectType number
+  array // $ExpectType string[]
+) => 0);
+```
+
+If we change any of those `$ExpectType` lines, we'll get an error. (This is often a good sanity check!)
+
+## Testing the value of this
+
+It's [famously hard][joke] to know what `this` refers to in JavaScript. But TypeScript can help! If a library manipulates `this` in its callbacks, then the type declarations should model that.
+
+If you've made it this far, you won't be surprised to find out that `dtslint` can help here, too! Just write a type assertion for `this`:
+
+```ts
+// Declaration; note that this is more like underscore's map than lodash's.
+export function map<U, V, C>(ary: U[], fn: (this: C, u: U, i: number, ary: U[]) => V, context: C): V[];
+
+// Test
+_.map([1, 2], function() {
+  this;  // $ExpectType Date
+}, new Date());
+```
+
+## Conclusion
+
+Dealing with inaccurate or imprecise type declarations can be one of the most frustrating aspects of working in TypeScript. They can introduce false errors or give you an unwarranted sense of confidence by introducing `any` types where you weren't expecting them.
+
+Testing is the key to improving an existing code base, and `dtslint` brings many of these benefits to TypeScript's type language. It lets you pin down existing behavior so that you can refactor type declarations with confidence. It even lets you do [test-driven development][tdd] with type declaration files!
+
+`dtslint` is in use in the [DefinitelyTyped][] repo today. So if you're writing type declarations, please write some type assertions! And if you're changing existing type declarations, please write assertions for the existing behavior. It's my hope that, over the long run, `dtslint` will lead to dramatically higher quality type declarations for all TypeScript users. And that means a better TypeScript experience, even if you don't know that `dtslint` exists!
 
 [module augmentation]: https://www.typescriptlang.org/docs/handbook/declaration-merging.html
 [dtslint]:
@@ -136,3 +215,7 @@ One of the best reasons to write tests is for the safety they give you in refact
 [typed-pluck]:
 [ts21-release-notes]:
 [flow-typed]: https://github.com/flowtype/flow-typed/tree/614bf49aa8b00b72c41caab1120094bc10fb9476/definitions/npm/underscore_v1.x.x
+[_map]: https://lodash.com/docs#map
+[joke]: https://twitter.com/bendhalpern/status/578925947245633536?lang=en
+[tdd]: https://en.wikipedia.org/wiki/Test-driven_development
+[DefinitelyTyped]: https://github.com/DefinitelyTyped/DefinitelyTyped
